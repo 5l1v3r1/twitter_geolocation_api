@@ -1,0 +1,234 @@
+>>> import json 
+>>> tweets_data_path = 'tweets.txt' 
+>>> tweets_data = [] 
+>>> tweets_file = open(tweets_data_path, "r") 
+>>> for line in tweets_file: 
+...  tweet = json.loads(line) 
+...  tweets_data.append(tweet) 
+>>> tweets_file.close() 
+>>> print(tweets_data[0].keys()) 
+[u'quote_count', u'contributors', u'truncated', u'text', u'is_quote_status', u'in_reply_to_status_id', u'reply_count', u'id', u'favorite_count', u'source', u'retweeted', u'coordinates', u'timestamp_ms', u'entities', u'in_reply_to_screen_name', u'in_reply_to_user_id', u'retweet_count', u'id_str', u'favorited', u'retweeted_status', u'user', u'geo', u'in_reply_to_user_id_str', u'lang', u'created_at', u'filter_level', u'in_reply_to_status_id_str', u'place']
+
+>>> import pandas as pd 
+>>> df = pd.DataFrame(tweets_data, columns=['created_at', 'text', 'lang', 'id', 'id_str', 'geo']) 
+>>> print(df['created_at']) 
+>>> df['created_at'] = pd.to_datetime(df['created_at']) #converting dataframe
+>>> print(df['created_at']) 
+
+>>> df.head() 
+>>> df['text'].value_counts() 
+>>> df['id'].value_counts() 
+>>> import numpy as np 
+>>> acte24 = df['text'].str.contains('Acte24', case = False) 
+>>> print(np.sum(acte24))  
+10
+>>> giletjaune = df['text'].str.contains('GiletsJaunes', case = False) 
+>>> print(np.sum(giletjaune)) 
+14
+
+>>> df = pd.DataFrame(tweets_data, columns=['created_at', 'text', 'lang', 'id', 'id_str', 'retweeted', 'retweeted_status', 'user']) 
+>>> df['retweeted_status'].value_counts()  >>> retweeted_status important
+
+
+>>> def check_word_in_tweet(word, data): 
+...  contains_column = data['text'].str.contains(word, case = False) 
+...  contains_column |= data['retweeted_status'].str.contains(word, case = False) 
+...  return contains_column 
+... 
+>>> acte24 = check_word_in_tweet('#Acte24', df) 
+>>> giletjaune = check_word_in_tweet('#GiletsJaunes', df) 
+>>> print("Proportion of #Acte24:", np.sum(acte24) / df.shape[0]) 
+('Proportion of #Acte24:', 0)
+>>> print("Proportion of #Acte24:", np.sum(acte24)) 
+('Proportion of #Acte24:', 10)
+>>> print("Proportion of #GiletsJaunes:", np.sum(giletjaune)) 
+('Proportion of #GiletsJaunes:', 12)
+
+
+>>> df = pd.DataFrame(tweets_data, columns=['created_at', 'text', 'lang', 'id', 'id_str', 'retweeted', 'retweeted_status', 'retweeted_count', 'retweeted', 'user']) 
+>>> df['created_at'] = pd.to_datetime(df['created_at']) 
+>>> print(df['created_at']) 
+ 
+>>> df = df.set_index('created_at') 
+>>> df['Acte24'] = check_word_in_tweet('Acte24', df) 
+>>> print(df['Acte24']) 
+created_at
+2019-04-29 22:05:28+00:00    False
+2019-04-29 22:05:31+00:00     True
+2019-04-29 22:05:59+00:00     True
+2019-04-29 22:06:15+00:00     True
+2019-04-29 22:06:26+00:00    False
+2019-04-29 22:06:35+00:00    False
+2019-04-29 22:06:52+00:00     True
+2019-04-29 22:06:57+00:00    False
+
+
+>>> print(np.sum(df['Acte24'])) 
+10
+>>> mean_acte24 = df['Acte24'].resample('1 min').mean() 
+>>> print(mean_acte24) 
+2019-04-29 22:05:00+00:00    0.666667
+2019-04-29 22:06:00+00:00    0.400000
+2019-04-29 22:07:00+00:00    0.142857
+2019-04-29 22:08:00+00:00    0.166667
+2019-04-29 22:09:00+00:00    0.500000
+2019-04-29 22:10:00+00:00    1.000000
+2019-04-29 22:11:00+00:00    0.142857
+2019-04-29 22:12:00+00:00    0.000000
+
+>>> df = pd.DataFrame(tweets_data, columns=['created_at', 'text', 'lang', 'id', 'id_str', 'retweeted', 'retweeted_status', 'retweeted_count', 'retweeted', 'user']) 
+>>> df['created_at'] = pd.to_datetime(df['created_at']) 
+
+>>> df = df.set_index('created_at')
+>>> df['GiletsJaunes'] = check_word_in_tweet('GiletsJaunes', df)
+>>> print(df['GiletsJaunes'])
+
+>>> mean_giletsjaunes = df['GiletsJaunes'].resample('1 min').mean()
+>>> print(mean_giletsjaunes) 
+
+
+>>> import matplotlib.pyplot as plt 
+>>> plt.plot(mean_giletsjaunes.index.minute, mean_giletsjaunes, color = 'blue') 
+[<matplotlib.lines.Line2D object at 0x7fe4ce6910d0>]
+>>> plt.plot(mean_acte24.index.minute, mean_acte24, color = 'green') 
+[<matplotlib.lines.Line2D object at 0x7fe4d411dfd0>]
+>>> plt.xlabel('Minute') 
+<matplotlib.text.Text object at 0x7fe4cebb7910>
+>>> plt.ylabel('Frequency') 
+<matplotlib.text.Text object at 0x7fe4cebdc350>
+>>> plt.title('Name') 
+<matplotlib.text.Text object at 0x7fe4ce6ca5d0>
+>>> plt.legend(('acte24', 'gilesjaunes')) 
+
+
+Creating time series data frame
+Time series data is used when we want to analyze or explore variation over time. This is useful when exploring Twitter text data if we want to track the prevalence of a word or set of words.
+
+The first step in doing this is converting the DataFrame into a format which can be handled using pandas time series methods. That can be done by converting the index to a datetime type.
+
+>>> df = pd.DataFrame(tweets_data, columns=['created_at', 'text', 'lang', 'id', 'id_str', 'retweeted', 'retweeted_status', 'geo', 'user', 'retweeted_count']) 
+>>> df['created_at'] = pd.to_datetime(df['created_at'])
+print(df['created_at'].head())
+>>> df = df.set_index('created_at')
+>>> df['GiletsJaunes'] = check_word_in_tweet('GiletsJaunes', df)
+>>> print(df['GiletsJaunes'])
+>>> mean_giletsjaunes = df['GiletsJaunes'].resample('1 d').mean()
+>>> print(mean_giletsjaunes) 
+created_at
+2019-04-29 00:00:00+00:00    0.304348
+
+
+# Convert the created_at column to np.datetime object
+df['created_at'] = pd.to_datetime(df['created_at'])
+
+# Print created_at to see new format
+print(df['created_at'].head())
+
+# Set the index of ds_tweets to created_at
+df = df.set_index('created_at')
+
+
+
+# Average of python column by day
+mean_acte24 = df['Acte24'].resample('1 d').mean()
+
+# Average of rstats column by day
+mean_giletsjaunes = df['GiletsJaunes'].resample('1 d').mean()
+
+# Plot mean python/rstats by day
+plt.plot(mean_acte24.index.day, mean_acte24, color = 'green')
+plt.plot(mean_giletsjaunes.index.day, mean_giletsjaunes, color = 'blue')
+
+# Add labels and show
+plt.xlabel('Day'); plt.ylabel('Frequency')
+plt.title('Language mentions over time')
+plt.legend(('#Acte24', '#GiletsJaunes'))
+plt.show()
+ 
+
+>>> from nltk.sentiment.vader import SentimentIntensityAnalyzer
+>>> sid = SentimentIntensityAnalyzer() 
+>>> sentiment_scores = df['text'].apply(sid.polarity_scores) 
+
+>>> sentiment_scores = df['text'].apply(sid.polarity_scores) 
+>>> print(sentiment_scores)
+
+>>> tweet1 = 'RT @zebulonite: Ce #Poutine vraiment quel... hein !? ..... ah non rien 😊 https://t.co/VnCDSSp8JC' 
+>>> print(sid.polarity_scores(tweet1)) 
+{'neg': 0.0, 'neu': 1.0, 'pos': 0.0, 'compound': 0.0} 
+
+>>> tweet2 = 'RT @France_Mon_Pays: #GiletJaune #GiletsJaunes #Patriotes #Français,une solution très rap une solution très rapide ! Il faut s attaquer aux maitres de nos maitr…'
+>>> print(sid.polarity_scores(tweet2)) 
+{'neg': 0.0, 'neu': 0.795, 'pos': 0.205, 'compound': 0.5983}
+
+>>> sentiment = sentiment_scores.apply(lambda x: x['compound']) 
+>>> sentiment_acte24 = sentiment[check_word_in_tweet('Acte24', df)].resample('1 min').mean() 
+>>> sentiment_giletsjaunes = sentiment[check_word_in_tweet('GiletsJaunes', df)].resample('1 min').mean()  
+>>> import matplotlib.pyplot as plt 
+>>> plt.plot(sentiment_acte24.index.minute, sentiment_acte24, color = 'blue') 
+[<matplotlib.lines.Line2D object at 0x7fcedeb05e50>]
+>>> plt.plot(sentiment_giletsjaunes.index.minute, sentiment_giletsjaunes, color = 'green')  
+[<matplotlib.lines.Line2D object at 0x7fcee0fccdd0>]
+>>> plt.xlabel('Minute')
+<matplotlib.text.Text object at 0x7fcedeaccd10>
+>>> plt.ylabel('Sentiment')
+<matplotlib.text.Text object at 0x7fcedeaf0c50>
+>>> plt.title('Sentiment of French people')
+<matplotlib.text.Text object at 0x7fcedeaa9850>
+>>> plt.legend(('Acte24', 'GiletsJaunes')) 
+<matplotlib.legend.Legend object at 0x7fcef3b39c10>
+>>> plt.show() 
+
+>>> print(df[sentiment > 0.0]['text']) 
+>>> print(df[sentiment < 0.0]['text'])
+
+>>> import networkx as nx
+>>> G_rt = nx.from_pandas_edgelist(df, source = 'text', target = 'in_reply_to_screen_name', create_using = nx.DiGraph()) 
+>>> print(len(G_rt.edges())) 
+33
+>>> print(len(G_rt.nodes())) 
+
+>>> pos = nx.random_layout(G_rt) 
+>>> treamer = [x[1] for x in G_rt.degree()] 
+>>> nx.draw_networkx(G_rt, pos, with_labels = False,  width = 0.1, alpha = 0.7, arrowsize = 2, linewidths = 0) 
+>>> plt.axis('off') 
+>>> plt.show() 
+>>> nx.in_degree_centrality(G_rt)
+>>> nx.out_degree_centrality(G_rt) 
+
+bc = nx.betweenness_centrality(G_rt)
+
+betweenness = pd.DataFrame(
+         list(bc.items()),
+         columns = ['text', 'geo'])
+
+print(betweenness.sort_values(
+         'text',
+         ascending = False).head())
+
+
+>>> from mpl_toolkits.basemap import Basemap 
+>>> import pandas as pd 
+>>> import matplotlib.pyplot as plt 
+>>> m = Basemap(projection='merc', llcrnrlat = -35.62, llcrnrlon = -17.29, urcrnrlat = 37.73, urcrnrlon = 51.39)
+>>> m.fillcontinents(color='blue') 
+>>> m.drawcoastlines(color='red') 
+>>> m.drawcountries(color='yellow') 
+>>> africa = pd.read_csv('africa.csv') 
+>>> df = pd.DataFrame(africa, columns=['CapitalLongitude', 'CapitalLatitude']) 
+>>> longs = df['CapitalLongitude'] 
+>>> lats = df['CapitalLatitude'] 
+>>> m.scatter(longs.values, lats.values, latlon = True, alpha = 1) 
+>>> plt.title('example') 
+<matplotlib.text.Text object at 0x7f8da3ed4810>
+>>> plt.show() 
+
+
+
+
+
+
+
+
+
+
